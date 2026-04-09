@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IRON HYBRID — Training Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#0a0a0a;--bg2:#111;--bg3:#181818;--bg4:#202020;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);--text:#f0f0f0;--muted:#888;--muted2:#444;--accent:#e8ff3c;--accent2:#ff6b35;--accent3:#3cd9ff;--green:#2dcc70;--amber:#f5a623;--red:#e74c3c;--font-display:'Barlow Condensed',sans-serif;--font-body:'Barlow',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh}
+input,select,textarea,button{font-family:var(--font-body)}
+
+/* SETUP SCREEN */
+.setup-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem}
+.setup-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:2.5rem;max-width:520px;width:100%}
+.setup-logo{font-family:var(--font-display);font-size:26px;font-weight:900;margin-bottom:.25rem}
+.setup-logo span{color:var(--accent)}
+.setup-sub{font-size:13px;color:var(--muted);margin-bottom:2rem;line-height:1.6}
+.setup-label{font-family:var(--font-display);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;display:block}
+.setup-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px 12px;color:var(--text);font-size:14px;margin-bottom:1rem;outline:none}
+.setup-input:focus{border-color:var(--accent)}
+.setup-btn{width:100%;background:var(--accent);color:#000;border:none;border-radius:4px;padding:12px;font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;margin-top:.5rem}
+.setup-btn:hover{background:#d4e836}
+.setup-steps{margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+.setup-step{display:flex;gap:.75rem;margin-bottom:.75rem;align-items:flex-start}
+.step-num{font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--accent);background:rgba(232,255,60,0.1);border:1px solid rgba(232,255,60,0.2);border-radius:2px;padding:1px 6px;white-space:nowrap;margin-top:2px}
+.step-text{font-size:12px;color:var(--muted);line-height:1.6}
+.step-text a{color:var(--accent3);text-decoration:none}
+.step-text code{background:var(--bg3);padding:1px 5px;border-radius:2px;font-size:11px;color:var(--accent)}
+.setup-err{background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:4px;padding:.75rem 1rem;font-size:13px;color:#f07568;margin-top:.75rem;display:none}
+
+/* MAIN APP */
+.app{display:none;flex-direction:column;min-height:100vh}
+.header{background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;padding:0 1rem}
+.header-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:52px}
+.logo{font-family:var(--font-display);font-weight:900;font-size:20px}
+.logo span{color:var(--accent)}
+.header-right{display:flex;align-items:center;gap:.75rem}
+.athlete-name{font-size:12px;color:var(--muted)}
+.signout-btn{font-size:11px;color:var(--muted);background:transparent;border:1px solid var(--border);border-radius:2px;padding:3px 8px;cursor:pointer}
+.nav{background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.nav-inner{max-width:900px;margin:0 auto;display:flex;padding:0 1rem}
+.nav-btn{font-family:var(--font-display);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:12px 14px;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.nav-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.nav-btn:hover:not(.active){color:var(--text)}
+.main{max-width:900px;margin:0 auto;padding:1.5rem 1rem;flex:1}
+.section{display:none}.section.active{display:block}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:1.25rem;margin-bottom:.75rem}
+.card-title{font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.75rem;color:var(--text)}
+
+/* LOG SESSION */
+.log-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem}
+.type-btn{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:.85rem;cursor:pointer;text-align:left;transition:all .15s}
+.type-btn:hover{border-color:var(--border2)}
+.type-btn.active{border-color:var(--accent);background:rgba(232,255,60,0.06)}
+.type-btn .tb-icon{font-size:20px;margin-bottom:.3rem}
+.type-btn .tb-label{font-family:var(--font-display);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text)}
+.type-btn .tb-sub{font-size:11px;color:var(--muted);margin-top:1px}
+
+.form-group{margin-bottom:.85rem}
+.form-label{font-family:var(--font-display);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem;display:block}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:9px 12px;color:var(--text);font-size:14px;outline:none}
+.form-input:focus{border-color:var(--accent)}
+select.form-input option{background:var(--bg3)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem}
+
+/* EXERCISE SETS */
+.sets-container{margin-bottom:.85rem}
+.set-row{display:grid;grid-template-columns:32px 1fr 1fr 1fr 80px;gap:.4rem;align-items:center;margin-bottom:.4rem}
+.set-num{font-family:var(--font-display);font-size:11px;font-weight:600;color:var(--muted);text-align:center}
+.set-input{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:7px 8px;color:var(--text);font-size:13px;outline:none;width:100%;text-align:center}
+.set-input:focus{border-color:var(--accent)}
+.set-header{display:grid;grid-template-columns:32px 1fr 1fr 1fr 80px;gap:.4rem;margin-bottom:.3rem}
+.set-header span{font-family:var(--font-display);font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);text-align:center}
+.add-set-btn{background:transparent;border:1px dashed var(--border);border-radius:3px;padding:6px;color:var(--muted);font-size:12px;cursor:pointer;width:100%;margin-top:.25rem}
+.add-set-btn:hover{border-color:var(--accent);color:var(--accent)}
+.rm-set-btn{background:transparent;border:none;color:var(--muted2);font-size:14px;cursor:pointer;padding:0}
+.rm-set-btn:hover{color:var(--red)}
+
+.submit-btn{width:100%;background:var(--accent);color:#000;border:none;border-radius:4px;padding:12px;font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;margin-top:.5rem}
+.submit-btn:hover{background:#d4e836}
+.submit-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* AI FEEDBACK */
+.feedback-box{background:var(--bg3);border:1px solid rgba(60,217,255,0.2);border-radius:6px;padding:1.25rem;margin-top:1rem;display:none}
+.feedback-tag{font-family:var(--font-display);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent3);margin-bottom:.5rem}
+.feedback-text{font-size:14px;line-height:1.75;color:var(--muted);white-space:pre-wrap}
+.feedback-loading{display:flex;align-items:center;gap:.5rem;font-size:13px;color:var(--muted)}
+.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent3);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* HISTORY */
+.hist-filters{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.hist-filter{font-family:var(--font-display);font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:5px 12px;border:1px solid var(--border);border-radius:2px;background:transparent;color:var(--muted);cursor:pointer}
+.hist-filter.active{background:var(--accent);color:#000;border-color:var(--accent)}
+.hist-item{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:1rem;margin-bottom:.5rem;cursor:pointer;transition:border-color .15s}
+.hist-item:hover{border-color:var(--border2)}
+.hist-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.4rem}
+.hist-title{font-family:var(--font-display);font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.hist-date{font-size:11px;color:var(--muted)}
+.hist-tags{display:flex;gap:.4rem;flex-wrap:wrap}
+.hist-tag{font-size:10px;padding:2px 7px;border-radius:2px}
+.ht-str{background:rgba(26,111,255,0.15);color:#6aaeff}
+.ht-run{background:rgba(45,204,112,0.12);color:#5ddd8a}
+.ht-bike{background:rgba(232,255,60,0.1);color:#d4e83a}
+.ht-swim{background:rgba(60,217,255,0.12);color:#3cd9ff}
+.ht-brick{background:rgba(255,107,53,0.12);color:#ff8a62}
+.hist-detail{display:none;margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border)}
+.hist-detail.open{display:block}
+
+/* DASHBOARD */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1rem}
+@media(max-width:550px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:.9rem}
+.stat-val{font-family:var(--font-display);font-size:26px;font-weight:700;line-height:1;color:var(--accent)}
+.stat-lbl{font-size:11px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-top:3px}
+.stat-sub{font-size:11px;color:var(--muted2);margin-top:2px}
+
+.pr-list{display:flex;flex-direction:column;gap:.4rem}
+.pr-row{display:grid;grid-template-columns:1fr auto auto;gap:.75rem;align-items:center;padding:.6rem .75rem;background:var(--bg3);border-radius:4px}
+.pr-name{font-size:13px;color:var(--text);font-weight:500}
+.pr-val{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--accent)}
+.pr-date{font-size:10px;color:var(--muted2)}
+
+.pb-bar{height:4px;background:var(--bg4);border-radius:2px;margin-top:.4rem;overflow:hidden}
+.pb-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s}
+
+/* TOAST */
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(100px);background:var(--bg2);border:1px solid var(--accent);border-radius:4px;padding:.6rem 1.25rem;font-size:13px;color:var(--accent);font-weight:500;transition:transform .3s;z-index:999;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:14px}
+.empty-state .es-icon{font-size:32px;margin-bottom:.75rem}
+
+/* PRE SESSION TARGETS */
+.target-box{background:rgba(232,255,60,0.05);border:1px solid rgba(232,255,60,0.2);border-radius:6px;padding:1rem;margin-bottom:1rem}
+.target-tag{font-family:var(--font-display);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.4rem}
+.target-text{font-size:13px;color:var(--muted);line-height:1.7;white-space:pre-wrap}
+
+@media(max-width:500px){.set-row{grid-template-columns:26px 1fr 1fr 1fr 44px}.set-header{grid-template-columns:26px 1fr 1fr 1fr 44px}.form-row,.form-row-3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div class="setup-screen" id="setupScreen">
+  <div class="setup-card">
+    <div class="setup-logo">IRON<span>HYBRID</span></div>
+    <div class="setup-sub">Training tracker — powered by Supabase + Claude AI.<br>Follow the steps below, then paste your keys to connect.</div>
+    <div style="background:rgba(232,255,60,0.08);border:1px solid rgba(232,255,60,0.25);border-radius:4px;padding:.75rem 1rem;margin-bottom:1rem;font-size:12px;color:#d4e83a;line-height:1.6">
+      <strong>Important:</strong> This app must be opened via a web server (GitHub Pages etc), not directly from your Downloads folder.
+    </div>
+
+    <div class="setup-steps">
+      <div class="setup-step">
+        <span class="step-num">1</span>
+        <div class="step-text">Go to <a href="https://sb.com" target="_blank">sb.com</a> → New project → give it a name → copy your <code>Project URL</code> and <code>anon public key</code> from Settings → API.</div>
+      </div>
+      <div class="setup-step">
+        <span class="step-num">2</span>
+        <div class="step-text">In Supabase → SQL Editor → paste and run the setup SQL from the second file provided (setup.sql).</div>
+      </div>
+      <div class="setup-step">
+        <span class="step-num">3</span>
+        <div class="step-text">In Supabase → Authentication → Providers → make sure Email is enabled. Then create your account below.</div>
+      </div>
+      <div class="setup-step">
+        <span class="step-num">4</span>
+        <div class="step-text">Paste your keys and sign up. You're in.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1.5rem">
+      <label class="setup-label">Supabase project URL</label>
+      <input class="setup-input" id="sbUrl" placeholder="https://xxxxxxxxxxxx.sb.co" />
+      <label class="setup-label">Supabase anon key</label>
+      <input class="setup-input" id="sbKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+      <label class="setup-label">Your name</label>
+      <input class="setup-input" id="athleteName" placeholder="e.g. Jake" />
+      <label class="setup-label">Anthropic API key (for AI feedback)</label>
+      <input class="setup-input" id="anthropicKey" placeholder="sk-ant-..." />
+      <div style="font-size:11px;color:var(--muted);margin-top:-0.65rem;margin-bottom:.75rem;line-height:1.5">Get a free key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent3)">console.anthropic.com</a> → API Keys → Create key. Stored only in your browser.</div>
+      <label class="setup-label">Email</label>
+      <input class="setup-input" id="authEmail" type="email" placeholder="you@email.com" />
+      <label class="setup-label">Password</label>
+      <input class="setup-input" id="authPassword" type="password" placeholder="min 6 characters" />
+      <button class="setup-btn" onclick="handleSetup('signup')">Create account + connect</button>
+      <button class="setup-btn" style="background:transparent;border:1px solid var(--border);color:var(--text);margin-top:.4rem" onclick="handleSetup('signin')">Sign in to existing account</button>
+      <div style="margin-top:.85rem;padding:.6rem .85rem;background:var(--bg3);border-radius:4px;font-size:11px;color:var(--muted);line-height:1.6">
+        <strong style="color:var(--text)">One more Supabase step:</strong> In Supabase → Authentication → URL Configuration → add your GitHub Pages URL (e.g. https://username.github.io) to <em>Site URL</em> and <em>Redirect URLs</em>. This allows login to work from your hosted URL.
+      </div>
+      <div class="setup-err" id="setupErr"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="mainApp">
+  <div class="header">
+    <div class="header-inner">
+      <div class="logo">IRON<span>HYBRID</span></div>
+      <div class="header-right">
+        <span class="athlete-name" id="headerName"></span>
+        <button class="signout-btn" onclick="signOut()">Sign out</button>
+      </div>
+    </div>
+  </div>
+  <div class="nav">
+    <div class="nav-inner">
+      <button class="nav-btn active" onclick="show('dashboard')">Dashboard</button>
+      <button class="nav-btn" onclick="show('log')">Log session</button>
+      <button class="nav-btn" onclick="show('history')">History</button>
+      <button class="nav-btn" onclick="show('targets')">Next session targets</button>
+      <button class="nav-btn" onclick="show('settings')">Settings</button>
+    </div>
+  </div>
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="section active" id="s-dashboard">
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="stat-val" id="statSessions">—</div><div class="stat-lbl">Sessions logged</div></div>
+        <div class="stat-card"><div class="stat-val" id="statWeek">—</div><div class="stat-lbl">This week</div></div>
+        <div class="stat-card"><div class="stat-val" id="statStreak">—</div><div class="stat-lbl">Day streak</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Personal records</div>
+        <div class="pr-list" id="prList"><div class="empty-state"><div class="es-icon">🏋️</div>Log some sessions to see your PRs</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Recent sessions</div>
+        <div id="recentSessions"><div class="empty-state"><div class="es-icon">📋</div>No sessions logged yet</div></div>
+      </div>
+    </div>
+
+    <!-- LOG SESSION -->
+    <div class="section" id="s-log">
+      <div class="card">
+        <div class="card-title">What are you logging?</div>
+        <div class="log-type-grid">
+          <button class="type-btn active" onclick="setType('strength',this)">
+            <div class="tb-icon">🏋️</div>
+            <div class="tb-label">Strength</div>
+            <div class="tb-sub">Gym session — lifts, sets, reps</div>
+          </button>
+          <button class="type-btn" onclick="setType('run',this)">
+            <div class="tb-icon">🏃</div>
+            <div class="tb-label">Run</div>
+            <div class="tb-sub">Distance, time, HR zones</div>
+          </button>
+          <button class="type-btn" onclick="setType('bike',this)">
+            <div class="tb-icon">🚴</div>
+            <div class="tb-label">Bike</div>
+            <div class="tb-sub">Road or BikeErg</div>
+          </button>
+          <button class="type-btn" onclick="setType('swim',this)">
+            <div class="tb-icon">🏊</div>
+            <div class="tb-label">Swim</div>
+            <div class="tb-sub">Distance, sets, pace</div>
+          </button>
+          <button class="type-btn" onclick="setType('brick',this)">
+            <div class="tb-icon">⚡</div>
+            <div class="tb-label">Brick</div>
+            <div class="tb-sub">Bike + run combined</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- STRENGTH FORM -->
+      <div id="form-strength" class="card">
+        <div class="card-title">Strength session</div>
+        <div class="form-group">
+          <label class="form-label">Session type</label>
+          <select class="form-input" id="str-session">
+            <option value="Strength A">Strength A — Bench + Shoulders + Upper back</option>
+            <option value="Strength B">Strength B — Lower body + Posterior chain</option>
+            <option value="Strength C">Strength C — Back + Arms + Core (pump day)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input class="form-input" type="date" id="str-date" />
+        </div>
+        <div id="exercisesForms"></div>
+        <div class="form-group">
+          <label class="form-label">Notes / how it felt</label>
+          <textarea class="form-input" id="str-notes" rows="2" placeholder="e.g. Bench felt strong, shoulder a bit tight..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Overall RPE (1–10)</label>
+          <input class="form-input" type="number" id="str-rpe" min="1" max="10" placeholder="7" />
+        </div>
+        <button class="submit-btn" onclick="submitStrength()">Log session + get AI feedback</button>
+        <div class="feedback-box" id="str-feedback">
+          <div class="feedback-tag">AI coach feedback</div>
+          <div class="feedback-text" id="str-feedback-text"></div>
+        </div>
+      </div>
+
+      <!-- RUN FORM -->
+      <div id="form-run" class="card" style="display:none">
+        <div class="card-title">Run session</div>
+        <div class="form-group">
+          <label class="form-label">Session type</label>
+          <select class="form-input" id="run-type">
+            <option value="Zone 2 easy run">Zone 2 easy run</option>
+            <option value="Threshold intervals">Threshold intervals</option>
+            <option value="Tempo run">Tempo run</option>
+            <option value="Long run">Long run</option>
+            <option value="Taper run / strides">Taper run / strides</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input class="form-input" type="date" id="run-date" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Distance (km)</label>
+            <input class="form-input" type="number" id="run-dist" step="0.1" placeholder="8.5" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Duration (min)</label>
+            <input class="form-input" type="number" id="run-duration" placeholder="45" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Avg HR (bpm)</label>
+            <input class="form-input" type="number" id="run-hr" placeholder="142" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Max HR (bpm)</label>
+            <input class="form-input" type="number" id="run-maxhr" placeholder="168" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Intervals completed</label>
+            <input class="form-input" type="text" id="run-intervals" placeholder="e.g. 6×5min or N/A" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-input" id="run-notes" rows="2" placeholder="How did it feel? Any issues?"></textarea>
+        </div>
+        <button class="submit-btn" onclick="submitEndurance('run')">Log run + get AI feedback</button>
+        <div class="feedback-box" id="run-feedback">
+          <div class="feedback-tag">AI coach feedback</div>
+          <div class="feedback-text" id="run-feedback-text"></div>
+        </div>
+      </div>
+
+      <!-- BIKE FORM -->
+      <div id="form-bike" class="card" style="display:none">
+        <div class="card-title">Bike session</div>
+        <div class="form-group">
+          <label class="form-label">Session type</label>
+          <select class="form-input" id="bike-type">
+            <option value="Zone 2 base ride">Zone 2 base ride</option>
+            <option value="Threshold intervals">Threshold intervals (BikeErg)</option>
+            <option value="Race pace intervals">Race pace intervals (road)</option>
+            <option value="Long road ride">Long road ride</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input class="form-input" type="date" id="bike-date" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Equipment</label>
+            <select class="form-input" id="bike-equip">
+              <option value="BikeErg">BikeErg</option>
+              <option value="Road bike">Road bike</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Duration (min)</label>
+            <input class="form-input" type="number" id="bike-duration" placeholder="60" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Distance (km)</label>
+            <input class="form-input" type="number" id="bike-dist" step="0.1" placeholder="30" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Avg HR (bpm)</label>
+            <input class="form-input" type="number" id="bike-hr" placeholder="138" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Intervals (if any)</label>
+            <input class="form-input" type="text" id="bike-intervals" placeholder="e.g. 3×10min or N/A" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-input" id="bike-notes" rows="2" placeholder="How did it feel?"></textarea>
+        </div>
+        <button class="submit-btn" onclick="submitEndurance('bike')">Log bike + get AI feedback</button>
+        <div class="feedback-box" id="bike-feedback">
+          <div class="feedback-tag">AI coach feedback</div>
+          <div class="feedback-text" id="bike-feedback-text"></div>
+        </div>
+      </div>
+
+      <!-- SWIM FORM -->
+      <div id="form-swim" class="card" style="display:none">
+        <div class="card-title">Swim session</div>
+        <div class="form-group">
+          <label class="form-label">Session type</label>
+          <select class="form-input" id="swim-type">
+            <option value="Base distance">Base distance</option>
+            <option value="Speed sets">Speed sets</option>
+            <option value="Race sim / threshold">Race sim / threshold</option>
+            <option value="Ocean swim">Ocean swim</option>
+            <option value="Easy recovery swim">Easy recovery swim</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input class="form-input" type="date" id="swim-date" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Total distance (m)</label>
+            <input class="form-input" type="number" id="swim-dist" placeholder="2500" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Duration (min)</label>
+            <input class="form-input" type="number" id="swim-duration" placeholder="45" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Main set</label>
+            <input class="form-input" type="text" id="swim-set" placeholder="e.g. 5×200m threshold" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-input" id="swim-notes" rows="2" placeholder="How did it feel? Pace? Any issues?"></textarea>
+        </div>
+        <button class="submit-btn" onclick="submitEndurance('swim')">Log swim + get AI feedback</button>
+        <div class="feedback-box" id="swim-feedback">
+          <div class="feedback-tag">AI coach feedback</div>
+          <div class="feedback-text" id="swim-feedback-text"></div>
+        </div>
+      </div>
+
+      <!-- BRICK FORM -->
+      <div id="form-brick" class="card" style="display:none">
+        <div class="card-title">Brick session</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input class="form-input" type="date" id="brick-date" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Brick number</label>
+            <input class="form-input" type="text" id="brick-num" placeholder="e.g. Brick 6" />
+          </div>
+        </div>
+        <div style="background:var(--bg3);border-radius:4px;padding:.85rem;margin-bottom:.85rem">
+          <div class="card-title" style="font-size:12px;margin-bottom:.6rem;color:var(--accent3)">Bike leg</div>
+          <div class="form-row">
+            <div class="form-group" style="margin:0">
+              <label class="form-label">Duration (min)</label>
+              <input class="form-input" type="number" id="brick-bike-dur" placeholder="90" />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label">Distance (km)</label>
+              <input class="form-input" type="number" id="brick-bike-dist" step="0.1" placeholder="40" />
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:.5rem;margin-bottom:0">
+            <label class="form-label">Avg HR (bpm)</label>
+            <input class="form-input" type="number" id="brick-bike-hr" placeholder="145" />
+          </div>
+        </div>
+        <div style="background:var(--bg3);border-radius:4px;padding:.85rem;margin-bottom:.85rem">
+          <div class="card-title" style="font-size:12px;margin-bottom:.6rem;color:var(--green)">Run leg</div>
+          <div class="form-row">
+            <div class="form-group" style="margin:0">
+              <label class="form-label">Duration (min)</label>
+              <input class="form-input" type="number" id="brick-run-dur" placeholder="35" />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label">Distance (km)</label>
+              <input class="form-input" type="number" id="brick-run-dist" step="0.1" placeholder="7" />
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:.5rem;margin-bottom:0">
+            <label class="form-label">Avg HR on run (bpm)</label>
+            <input class="form-input" type="number" id="brick-run-hr" placeholder="158" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Transition feel (1–10)</label>
+          <input class="form-input" type="number" id="brick-trans" min="1" max="10" placeholder="6" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-input" id="brick-notes" rows="2" placeholder="How did the legs feel stepping off the bike?"></textarea>
+        </div>
+        <button class="submit-btn" onclick="submitEndurance('brick')">Log brick + get AI feedback</button>
+        <div class="feedback-box" id="brick-feedback">
+          <div class="feedback-tag">AI coach feedback</div>
+          <div class="feedback-text" id="brick-feedback-text"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="section" id="s-history">
+      <div class="hist-filters">
+        <button class="hist-filter active" onclick="filterHistory('all',this)">All</button>
+        <button class="hist-filter" onclick="filterHistory('strength',this)">Strength</button>
+        <button class="hist-filter" onclick="filterHistory('run',this)">Run</button>
+        <button class="hist-filter" onclick="filterHistory('bike',this)">Bike</button>
+        <button class="hist-filter" onclick="filterHistory('swim',this)">Swim</button>
+        <button class="hist-filter" onclick="filterHistory('brick',this)">Brick</button>
+      </div>
+      <div id="historyList"><div class="empty-state"><div class="es-icon">📋</div>No sessions logged yet</div></div>
+    </div>
+
+    <!-- TARGETS -->
+    <div class="section" id="s-targets">
+      <div class="card">
+        <div class="card-title">Next session targets</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:1rem">Select a session type and Claude AI will analyse your recent training data and set personalised targets for your next session.</p>
+        <div class="form-group">
+          <label class="form-label">Session to plan</label>
+          <select class="form-input" id="target-type">
+            <option value="Strength A">Strength A — Bench + Shoulders</option>
+            <option value="Strength B">Strength B — Lower body</option>
+            <option value="Strength C">Strength C — Back + Arms</option>
+            <option value="Run">Run session</option>
+            <option value="Bike">Bike session</option>
+            <option value="Swim">Swim session</option>
+            <option value="Brick">Brick session</option>
+          </select>
+        </div>
+        <button class="submit-btn" onclick="getTargets()">Generate targets from my data</button>
+      </div>
+      <div class="feedback-box" id="target-feedback" style="display:none">
+        <div class="feedback-tag">Next session targets</div>
+        <div class="feedback-text" id="target-feedback-text"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="section" id="s-settings">
+      <div class="card">
+        <div class="card-title">AI settings</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:.85rem">Your Anthropic API key is stored only in your browser. Get a free key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent3)">console.anthropic.com</a> → API Keys.</p>
+        <div class="form-group">
+          <label class="form-label">Anthropic API key</label>
+          <input class="form-input" id="settings-api-key" placeholder="sk-ant-..." />
+        </div>
+        <button class="submit-btn" onclick="saveApiKey()">Save API key</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Account</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:.85rem">Signed in as <strong style="color:var(--text)" id="settings-email"></strong></p>
+        <button class="submit-btn" style="background:transparent;border:1px solid var(--border);color:var(--text)" onclick="signOut()">Sign out</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// SUPABASE + ANTHROPIC CONFIG
+// ============================================================
+let sb = null;
+let currentUser = null;
+let currentAthleteName = '';
+let allSessions = [];
+let currentType = 'strength';
+
+const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
+
+// ============================================================
+// TRAINING PROGRAM CONTEXT — baked in so AI knows your plan
+// ============================================================
+function getProgramContext() {
+  const today = new Date();
+  const phase1End = new Date('2026-05-31');
+  const phase2End = new Date('2026-07-31');
+  const phase3End = new Date('2026-10-04');
+  const raceDay = new Date('2026-10-18');
+  const daysToRace = Math.ceil((raceDay - today) / (1000*60*60*24));
+
+  let phase, phaseDesc;
+  if (today <= phase1End) {
+    phase = 'Phase 1 — Base (Apr 5 – May 31)';
+    phaseDesc = 'Aerobic foundation. 70% Zone 2 endurance. Heavy strength (5×3-5 bench at 85-90% 1RM). Swim distance building from 2,000m. Sunday road rides 60-90min Zone 2. Deload week Apr 27.';
+  } else if (today <= phase2End) {
+    phase = 'Phase 2 — Build (Jun 1 – Jul 31)';
+    phaseDesc = 'Threshold intervals introduced. Run: 4-6×5min at 80-88% HRmax on flat route. Bike: BikeErg 2-4×10min threshold Tue. Sunday rides to 2.5hrs with 2-3×15-25min race pace blocks. Strength shifts to hypertrophy (4×6-8 bench at 75-80% 1RM). Brick sessions begin Sat. Swim speed sets. Deloads: Jun 22, Jul 20.';
+  } else if (today <= phase3End) {
+    phase = 'Phase 3 — Peak (Aug 1 – Oct 4)';
+    phaseDesc = 'Rugby ends mid-Aug. Peak volume. Strength maintenance 2×/week (heavy + pump). Long runs 90-110min. Road rides 3-3.5hrs with race pace. Brick runs at race pace (75-82% HR). Two race sims: Sep 5 and Sep 19 (swim 1.9km + 65km road + 10-12km run). Deload Aug 10.';
+  } else {
+    phase = 'Phase 4 — Taper (Oct 5 – Oct 18)';
+    phaseDesc = 'Volume -45%. Intensity maintained. 1 strength session. Mini brick Oct 10. Race day Oct 18.';
+  }
+
+  return {
+    phase, phaseDesc, daysToRace,
+    athlete: '22yo male, 92kg, lean (visible abs flexing). Bench press max ~140kg. Advanced lifting experience. Strong work ethic. Full-time job 7:30am-5:30pm, trains 5am. Rugby until mid-August (Tue/Thu eve + Sat 3pm games).',
+    schedule: 'Mon: Str A (Bench+Shoulders+Swim). Tue: BikeErg+Rugby. Wed: Str B (Lower+Run). Thu: BikeErg easy+Rugby. Fri: Str C (Back+Arms) + Swim split session. Sat: Long run or Brick (done by 6:30am) + Rugby 3pm. Sun: Road ride or swim-run.',
+    strengthTargets: {
+      bench: 'Phase 1: 5×3-5 @ 118-126kg. Phase 2: 4×6-8 @ 108-120kg hypertrophy. Phase 3: 3-4×4-5 @ 116-124kg maintain.',
+      squat: 'Starting base: 120kg×5 comfortable. Phase 1: 4×4-6 @ 120-132kg. Phase 2: 4×8-10 @ 110-122kg. Phase 3: 3×5-6 maintenance.',
+      deadlift: 'Phase 1: 4×4-6 @ 160-180kg. Phase 2: 4×8-10 hypertrophy. Phase 3: 3×4-5 maintenance.',
+    },
+    enduranceTargets: {
+      run: 'Phase 1: Z2 35-55min. Phase 2: Threshold 4-6×5min + long run to 75-90min. Phase 3: long run 90-110min, 6-8×5min threshold.',
+      bike: 'Phase 1: BikeErg Z2 35-40min. Phase 2: Sunday road 90-160min + race pace intervals. Phase 3: 3-3.5hr road rides.',
+      swim: 'Phase 1: Mon 2,000-2,400m. Phase 2: 2,500-2,900m speed sets. Phase 3: 3,000m race sim.',
+    }
+  };
+}
+
+// Session-specific exercises
+const EXERCISES = {
+  'Strength A': ['Flat barbell bench press','Incline DB press','Weighted pull-ups','Seated DB shoulder press','Lateral raises','Face pulls','Rear delt DB fly','Tricep rope pushdown','Barbell curl'],
+  'Strength B': ['Trap bar deadlift','Heel-elevated BB squat','Romanian deadlift','T-bar row','Lateral raises','Single-leg press','Weighted calf raises'],
+  'Strength C': ['Incline DB press','Weighted pull-ups (wide)','Seated cable row','Lat pulldown','Lateral raises','Incline DB curl','Hammer curl','Overhead tricep extension','Cable tricep pushdown','Hanging leg raises','Weighted plank']
+};
+
+// ============================================================
+// SETUP & AUTH
+// ============================================================
+function handleSetup(mode) {
+  const url = document.getElementById('sbUrl').value.trim();
+  const key = document.getElementById('sbKey').value.trim();
+  const name = document.getElementById('athleteName').value.trim();
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const anthropicKey = document.getElementById('anthropicKey').value.trim();
+
+  if (!url || !key || !email || !password) {
+    showSetupErr('Please fill in all fields');
+    return;
+  }
+  if (mode === 'signup' && !name) {
+    showSetupErr('Please enter your name');
+    return;
+  }
+
+  try {
+    sb = window.supabase.createClient(url, key);
+    localStorage.setItem('sb_url', url);
+    localStorage.setItem('sb_key', key);
+    if (name) localStorage.setItem('athlete_name', name);
+    if (anthropicKey) localStorage.setItem('anthropic_key', anthropicKey);
+  } catch(e) {
+    showSetupErr('Invalid Supabase URL or key. Check them and try again.');
+    return;
+  }
+
+  if (mode === 'signup') {
+    sb.auth.signUp({ email, password, options: { data: { name } } }).then(({ data, error }) => {
+      if (error) { showSetupErr(error.message); return; }
+      if (data.user) {
+        currentUser = data.user;
+        currentAthleteName = name || email.split('@')[0];
+        localStorage.setItem('athlete_name', currentAthleteName);
+        launchApp();
+      } else {
+        showSetupErr('Check your email to confirm your account, then sign in.');
+      }
+    });
+  } else {
+    sb.auth.signInWithPassword({ email, password }).then(({ data, error }) => {
+      if (error) { showSetupErr(error.message); return; }
+      currentUser = data.user;
+      currentAthleteName = localStorage.getItem('athlete_name') || email.split('@')[0];
+      launchApp();
+    });
+  }
+}
+
+function showSetupErr(msg) {
+  const el = document.getElementById('setupErr');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function tryAutoLogin() {
+  const url = localStorage.getItem('sb_url');
+  const key = localStorage.getItem('sb_key');
+  if (!url || !key) return;
+  try {
+    supabase = window.supabase.createClient(url, key);
+    const { data } = await sb.auth.getSession();
+    if (data?.session?.user) {
+      currentUser = data.session.user;
+      currentAthleteName = localStorage.getItem('athlete_name') || currentUser.email.split('@')[0];
+      launchApp();
+    }
+  } catch(e) {}
+}
+
+function launchApp() {
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'flex';
+  document.getElementById('headerName').textContent = currentAthleteName;
+  setTodayDates();
+  buildExerciseForms('Strength A');
+  loadAllSessions();
+  // Populate settings
+  const storedKey = localStorage.getItem('anthropic_key') || '';
+  const keyEl = document.getElementById('settings-api-key');
+  if (keyEl) keyEl.value = storedKey ? storedKey.substring(0,12) + '...' : '';
+  const emailEl = document.getElementById('settings-email');
+  if (emailEl && currentUser) emailEl.textContent = currentUser.email;
+}
+
+function saveApiKey() {
+  const key = document.getElementById('settings-api-key').value.trim();
+  if (!key || key.endsWith('...')) { showToast('Enter a valid API key'); return; }
+  localStorage.setItem('anthropic_key', key);
+  document.getElementById('settings-api-key').value = key.substring(0,12) + '...';
+  showToast('API key saved ✓');
+}
+
+function signOut() {
+  if (supabase) sb.auth.signOut();
+  localStorage.removeItem('sb_url');
+  localStorage.removeItem('sb_key');
+  document.getElementById('setupScreen').style.display = 'flex';
+  document.getElementById('mainApp').style.display = 'none';
+}
+
+function setTodayDates() {
+  const today = new Date().toISOString().split('T')[0];
+  ['str-date','run-date','bike-date','swim-date','brick-date'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = today;
+  });
+}
+
+// ============================================================
+// SESSION TYPE SWITCHING
+// ============================================================
+function setType(type, btn) {
+  currentType = type;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ['strength','run','bike','swim','brick'].forEach(t => {
+    document.getElementById('form-'+t).style.display = t === type ? 'block' : 'none';
+  });
+  if (type === 'strength') buildExerciseForms(document.getElementById('str-session').value);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('str-session').addEventListener('change', function() {
+    buildExerciseForms(this.value);
+  });
+  tryAutoLogin();
+});
+
+// ============================================================
+// EXERCISE FORMS (dynamic sets)
+// ============================================================
+function buildExerciseForms(sessionName) {
+  const exercises = EXERCISES[sessionName] || [];
+  const container = document.getElementById('exercisesForms');
+  container.innerHTML = '';
+  exercises.forEach((ex, i) => {
+    const div = document.createElement('div');
+    div.className = 'form-group';
+    div.id = `ex-group-${i}`;
+    div.innerHTML = `
+      <label class="form-label">${ex}</label>
+      <div class="set-header">
+        <span></span><span>KG</span><span>REPS</span><span>RPE</span><span></span>
+      </div>
+      <div class="sets-container" id="sets-${i}">
+        ${buildSetRow(i, 1)}
+      </div>
+      <button class="add-set-btn" onclick="addSet(${i})">+ Add set</button>`;
+    container.appendChild(div);
+  });
+}
+
+function buildSetRow(exIdx, setNum) {
+  return `<div class="set-row" id="set-${exIdx}-${setNum}">
+    <span class="set-num">${setNum}</span>
+    <input class="set-input" type="number" placeholder="kg" step="0.5" id="kg-${exIdx}-${setNum}" />
+    <input class="set-input" type="number" placeholder="reps" id="reps-${exIdx}-${setNum}" />
+    <input class="set-input" type="number" placeholder="RPE" min="1" max="10" id="rpe-${exIdx}-${setNum}" />
+    <button class="rm-set-btn" onclick="removeSet(${exIdx},${setNum})">✕</button>
+  </div>`;
+}
+
+function addSet(exIdx) {
+  const container = document.getElementById(`sets-${exIdx}`);
+  const existing = container.querySelectorAll('.set-row').length;
+  const newNum = existing + 1;
+  container.insertAdjacentHTML('beforeend', buildSetRow(exIdx, newNum));
+}
+
+function removeSet(exIdx, setNum) {
+  const row = document.getElementById(`set-${exIdx}-${setNum}`);
+  if (row) row.remove();
+  // Renumber
+  const container = document.getElementById(`sets-${exIdx}`);
+  container.querySelectorAll('.set-row').forEach((row, idx) => {
+    row.querySelector('.set-num').textContent = idx + 1;
+  });
+}
+
+function collectExerciseData() {
+  const sessionName = document.getElementById('str-session').value;
+  const exercises = EXERCISES[sessionName] || [];
+  const data = [];
+  exercises.forEach((ex, i) => {
+    const container = document.getElementById(`sets-${i}`);
+    if (!container) return;
+    const sets = [];
+    container.querySelectorAll('.set-row').forEach((row, setIdx) => {
+      const n = setIdx + 1;
+      const kg = document.getElementById(`kg-${i}-${n}`)?.value;
+      const reps = document.getElementById(`reps-${i}-${n}`)?.value;
+      const rpe = document.getElementById(`rpe-${i}-${n}`)?.value;
+      if (kg || reps) sets.push({ set: n, kg: parseFloat(kg)||0, reps: parseInt(reps)||0, rpe: parseInt(rpe)||0 });
+    });
+    if (sets.length) data.push({ exercise: ex, sets });
+  });
+  return data;
+}
+
+// ============================================================
+// SUBMIT SESSIONS
+// ============================================================
+async function submitStrength() {
+  const sessionType = document.getElementById('str-session').value;
+  const date = document.getElementById('str-date').value;
+  const notes = document.getElementById('str-notes').value;
+  const rpe = document.getElementById('str-rpe').value;
+  const exercises = collectExerciseData();
+
+  if (!exercises.length) { showToast('Add at least one exercise'); return; }
+
+  const payload = { type: 'strength', session_type: sessionType, date, notes, overall_rpe: parseInt(rpe)||null, exercises, user_id: currentUser.id };
+  const btn = document.querySelector('#form-strength .submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const { error } = await sb.from('training_sessions').insert([payload]);
+  if (error) { showToast('Error saving: ' + error.message); btn.disabled = false; btn.textContent = 'Log session + get AI feedback'; return; }
+
+  showToast('Session saved ✓');
+  loadAllSessions();
+  getAIFeedback('strength', payload, allSessions);
+  btn.disabled = false;
+  btn.textContent = 'Log session + get AI feedback';
+}
+
+async function submitEndurance(type) {
+  let payload = { type, user_id: currentUser.id };
+
+  if (type === 'run') {
+    payload = { ...payload, session_type: document.getElementById('run-type').value, date: document.getElementById('run-date').value, distance_km: parseFloat(document.getElementById('run-dist').value)||null, duration_min: parseInt(document.getElementById('run-duration').value)||null, avg_hr: parseInt(document.getElementById('run-hr').value)||null, max_hr: parseInt(document.getElementById('run-maxhr').value)||null, intervals: document.getElementById('run-intervals').value, notes: document.getElementById('run-notes').value };
+  } else if (type === 'bike') {
+    payload = { ...payload, session_type: document.getElementById('bike-type').value, date: document.getElementById('bike-date').value, equipment: document.getElementById('bike-equip').value, duration_min: parseInt(document.getElementById('bike-duration').value)||null, distance_km: parseFloat(document.getElementById('bike-dist').value)||null, avg_hr: parseInt(document.getElementById('bike-hr').value)||null, intervals: document.getElementById('bike-intervals').value, notes: document.getElementById('bike-notes').value };
+  } else if (type === 'swim') {
+    payload = { ...payload, session_type: document.getElementById('swim-type').value, date: document.getElementById('swim-date').value, distance_m: parseInt(document.getElementById('swim-dist').value)||null, duration_min: parseInt(document.getElementById('swim-duration').value)||null, main_set: document.getElementById('swim-set').value, notes: document.getElementById('swim-notes').value };
+  } else if (type === 'brick') {
+    payload = { ...payload, session_type: document.getElementById('brick-num').value || 'Brick', date: document.getElementById('brick-date').value, bike_duration_min: parseInt(document.getElementById('brick-bike-dur').value)||null, bike_distance_km: parseFloat(document.getElementById('brick-bike-dist').value)||null, bike_avg_hr: parseInt(document.getElementById('brick-bike-hr').value)||null, run_duration_min: parseInt(document.getElementById('brick-run-dur').value)||null, run_distance_km: parseFloat(document.getElementById('brick-run-dist').value)||null, run_avg_hr: parseInt(document.getElementById('brick-run-hr').value)||null, transition_feel: parseInt(document.getElementById('brick-trans').value)||null, notes: document.getElementById('brick-notes').value };
+  }
+
+  const btn = document.querySelector(`#form-${type} .submit-btn`);
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const { error } = await sb.from('training_sessions').insert([payload]);
+  if (error) { showToast('Error: ' + error.message); btn.disabled = false; btn.textContent = `Log ${type} + get AI feedback`; return; }
+
+  showToast('Session saved ✓');
+  loadAllSessions();
+  getAIFeedback(type, payload, allSessions);
+  btn.disabled = false;
+  btn.textContent = `Log ${type} + get AI feedback`;
+}
+
+// ============================================================
+// AI FEEDBACK — uses stored Anthropic key + full program context
+// ============================================================
+async function callClaude(prompt) {
+  const apiKey = localStorage.getItem('anthropic_key');
+  if (!apiKey) {
+    return '⚠️ No Anthropic API key found. Go to console.anthropic.com → API Keys → create a key, then add it in the app settings (sign out and sign back in to enter it).';
+  }
+  try {
+    const res = await fetch(ANTHROPIC_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-allow-browser': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      if (err.error?.type === 'authentication_error') return '⚠️ Invalid API key. Check your key at console.anthropic.com and re-enter it.';
+      return `⚠️ API error: ${err.error?.message || res.status}`;
+    }
+    const data = await res.json();
+    return data.content?.find(b => b.type === 'text')?.text || 'No response generated.';
+  } catch(e) {
+    return `⚠️ Could not reach AI: ${e.message}. Check your internet connection.`;
+  }
+}
+
+async function getAIFeedback(type, session, history) {
+  const fbBox = document.getElementById(`${type}-feedback`);
+  const fbText = document.getElementById(`${type}-feedback-text`);
+  fbBox.style.display = 'block';
+  fbText.innerHTML = '<div class="feedback-loading"><div class="spinner"></div>Claude is analysing your session against your program targets...</div>';
+
+  const ctx = getProgramContext();
+  const recentSame = history.filter(s => s.type === type && s.session_type === session.session_type).slice(0, 4);
+
+  const prompt = `You are an elite hybrid strength and endurance coach working with this specific athlete:
+
+ATHLETE: ${ctx.athlete}
+CURRENT PHASE: ${ctx.phase}
+PHASE FOCUS: ${ctx.phaseDesc}
+WEEKLY SCHEDULE: ${ctx.schedule}
+DAYS TO RACE (Oct 18 2026): ${ctx.daysToRace}
+
+STRENGTH TARGETS FOR THIS PHASE:
+${JSON.stringify(ctx.strengthTargets, null, 2)}
+
+ENDURANCE TARGETS FOR THIS PHASE:
+${JSON.stringify(ctx.enduranceTargets, null, 2)}
+
+SESSION JUST LOGGED:
+${JSON.stringify(session, null, 2)}
+
+RECENT SIMILAR SESSIONS (last 4):
+${JSON.stringify(recentSame, null, 2)}
+
+Give sharp coaching feedback. Be specific and direct — talk like a coach who knows this athlete and their exact program. Cover:
+1. How this session compares to phase targets (on track / ahead / behind)
+2. One thing they did well
+3. One specific thing to focus on or fix
+4. Exact targets for the NEXT session of this type (specific numbers: kg×reps for lifts, pace/distance/HR for endurance)
+
+Keep it to 4-6 sentences. No fluff.`;
+
+  const text = await callClaude(prompt);
+  fbText.textContent = text;
+}
+
+async function getTargets() {
+  const type = document.getElementById('target-type').value;
+  const fbBox = document.getElementById('target-feedback');
+  const fbText = document.getElementById('target-feedback-text');
+  fbBox.style.display = 'block';
+  fbText.innerHTML = '<div class="feedback-loading"><div class="spinner"></div>Building your personalised session targets...</div>';
+
+  const ctx = getProgramContext();
+  const typeKey = type.toLowerCase().includes('strength') ? 'strength' : type.toLowerCase().includes('run') ? 'run' : type.toLowerCase().includes('bike') ? 'bike' : type.toLowerCase().includes('swim') ? 'swim' : 'brick';
+  const relevant = allSessions.filter(s => s.type === typeKey).slice(0, 6);
+
+  const prompt = `You are an elite hybrid strength and endurance coach. Build a pre-session game plan for this athlete.
+
+ATHLETE: ${ctx.athlete}
+CURRENT PHASE: ${ctx.phase}
+PHASE FOCUS: ${ctx.phaseDesc}
+WEEKLY SCHEDULE: ${ctx.schedule}
+DAYS TO RACE: ${ctx.daysToRace}
+
+STRENGTH TARGETS: ${JSON.stringify(ctx.strengthTargets)}
+ENDURANCE TARGETS: ${JSON.stringify(ctx.enduranceTargets)}
+
+UPCOMING SESSION: ${type}
+
+RECENT SESSIONS OF THIS TYPE (last 6):
+${JSON.stringify(relevant, null, 2)}
+
+Generate a specific, personalised pre-session game plan. Include:
+- Exact targets based on their recent data AND phase targets (weights×reps for strength; distance/time/HR for endurance)
+- Warm-up recommendation
+- Key focus cue for the session
+- What to do if they feel flat or fatigued today (auto-regulation)
+- Any trend or pattern from their recent sessions worth noting
+
+Format with clear sections. Be direct and specific. This is their game plan — not generic advice.`;
+
+  const text = await callClaude(prompt);
+  fbText.textContent = text;
+}
+
+// ============================================================
+// LOAD + DISPLAY DATA
+// ============================================================
+async function loadAllSessions() {
+  if (!supabase || !currentUser) return;
+  const { data, error } = await sb.from('training_sessions').select('*').eq('user_id', currentUser.id).order('date', { ascending: false }).limit(100);
+  if (error) return;
+  allSessions = data || [];
+  renderDashboard();
+  renderHistory('all');
+}
+
+function renderDashboard() {
+  document.getElementById('statSessions').textContent = allSessions.length;
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+  const thisWeek = allSessions.filter(s => new Date(s.date) >= weekAgo).length;
+  document.getElementById('statWeek').textContent = thisWeek;
+
+  // Simple streak
+  const dates = [...new Set(allSessions.map(s => s.date))].sort().reverse();
+  let streak = 0;
+  const today = new Date().toISOString().split('T')[0];
+  for (let i = 0; i < dates.length; i++) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().split('T')[0];
+    if (dates.includes(ds)) streak++;
+    else break;
+  }
+  document.getElementById('statStreak').textContent = streak + 'd';
+
+  // PRs
+  const prs = {};
+  allSessions.filter(s => s.type === 'strength' && s.exercises).forEach(s => {
+    s.exercises.forEach(ex => {
+      ex.sets.forEach(set => {
+        const key = ex.exercise;
+        if (!prs[key] || set.kg > prs[key].kg) prs[key] = { kg: set.kg, reps: set.reps, date: s.date };
+      });
+    });
+  });
+  const prList = document.getElementById('prList');
+  const prEntries = Object.entries(prs);
+  if (!prEntries.length) { prList.innerHTML = '<div class="empty-state"><div class="es-icon">🏋️</div>Log some sessions to see your PRs</div>'; return; }
+  prList.innerHTML = prEntries.map(([name, pr]) => `
+    <div class="pr-row">
+      <span class="pr-name">${name}</span>
+      <span class="pr-val">${pr.kg}kg × ${pr.reps}</span>
+      <span class="pr-date">${pr.date}</span>
+    </div>`).join('');
+
+  // Recent sessions
+  const recent = allSessions.slice(0, 5);
+  document.getElementById('recentSessions').innerHTML = recent.length ? recent.map(s => renderHistItem(s)).join('') : '<div class="empty-state">No sessions yet</div>';
+}
+
+function renderHistItem(s) {
+  const typeColor = { strength:'ht-str', run:'ht-run', bike:'ht-bike', swim:'ht-swim', brick:'ht-brick' }[s.type] || 'ht-str';
+  let summary = '';
+  if (s.type === 'strength' && s.exercises) {
+    const bench = s.exercises.find(e => e.exercise.toLowerCase().includes('bench'));
+    if (bench) { const best = bench.sets.reduce((a,b) => b.kg > a.kg ? b : a, bench.sets[0]); summary = `Bench: ${best?.kg}kg × ${best?.reps}`; }
+  } else if (s.distance_km) summary = `${s.distance_km}km`;
+  else if (s.distance_m) summary = `${s.distance_m}m`;
+  else if (s.duration_min) summary = `${s.duration_min} min`;
+
+  return `<div class="hist-item" onclick="this.querySelector('.hist-detail').classList.toggle('open')">
+    <div class="hist-top">
+      <div>
+        <div class="hist-title">${s.session_type || s.type}</div>
+        <div class="hist-date">${s.date}${summary ? ' · ' + summary : ''}</div>
+      </div>
+      <div class="hist-tags"><span class="hist-tag ${typeColor}">${s.type}</span></div>
+    </div>
+    <div class="hist-detail">
+      <div style="font-size:12px;color:var(--muted);line-height:1.8">${formatSessionDetail(s)}</div>
+    </div>
+  </div>`;
+}
+
+function formatSessionDetail(s) {
+  if (s.type === 'strength' && s.exercises) {
+    return s.exercises.map(ex => `<strong style="color:var(--text)">${ex.exercise}:</strong> ${ex.sets.map(st => `${st.kg}kg×${st.reps} @RPE${st.rpe}`).join(', ')}`).join('<br>') + (s.notes ? `<br><em>${s.notes}</em>` : '');
+  }
+  const parts = [];
+  if (s.duration_min) parts.push(`${s.duration_min} min`);
+  if (s.distance_km) parts.push(`${s.distance_km} km`);
+  if (s.distance_m) parts.push(`${s.distance_m} m`);
+  if (s.avg_hr) parts.push(`Avg HR: ${s.avg_hr} bpm`);
+  if (s.intervals) parts.push(`Intervals: ${s.intervals}`);
+  if (s.bike_duration_min) parts.push(`Bike: ${s.bike_duration_min}min ${s.bike_distance_km||''}km`);
+  if (s.run_duration_min) parts.push(`Run: ${s.run_duration_min}min ${s.run_distance_km||''}km`);
+  if (s.notes) parts.push(`<em>${s.notes}</em>`);
+  return parts.join(' · ');
+}
+
+function renderHistory(filter) {
+  const filtered = filter === 'all' ? allSessions : allSessions.filter(s => s.type === filter);
+  document.getElementById('historyList').innerHTML = filtered.length ? filtered.map(s => renderHistItem(s)).join('') : `<div class="empty-state"><div class="es-icon">📋</div>No ${filter} sessions logged yet</div>`;
+}
+
+function filterHistory(filter, btn) {
+  document.querySelectorAll('.hist-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderHistory(filter);
+}
+
+// ============================================================
+// NAV + UTILS
+// ============================================================
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('s-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
